@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Accesso{% endblock %}
+{% block body %}
+<main class="login">
+  <p class="kicker">Chef Battle · 21 Ottobre 2026</p>
+  <h1>Regia estrazione</h1>
+  <form method="post" action="/admin/login" class="stack">
+    <label for="password" class="label">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required autofocus>
+    {% if errore %}<p class="errore" role="alert">{{ errore }}</p>{% endif %}
+    <button type="submit" class="btn btn-primary">Entra</button>
+  </form>
+</main>
+{% endblock %}

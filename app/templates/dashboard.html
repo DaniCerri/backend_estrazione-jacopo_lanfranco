@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block body %}
+<header class="topbar">
+  <div>
+    <p class="kicker">Chef Battle · 21 Ottobre 2026</p>
+    <h1>Regia estrazione</h1>
+  </div>
+  <form method="post" action="/admin/logout"><button class="btn btn-ghost" type="submit">Esci</button></form>
+</header>
+
+<main class="wrap">
+  {% if msg == "pool_vuoto" %}
+  <p class="avviso" role="alert">Nessun partecipante in gara con questo filtro.</p>
+  {% elif msg == "eliminata" %}
+  <p class="avviso" role="status">Iscrizione eliminata.</p>
+  {% endif %}
+
+  {% if evidenziata %}
+  <section id="esito" class="esito {% if evidenziata.annullata %}is-annullata{% endif %}">
+    <p class="kicker">
+      Estrazione #{{ evidenziata.id }} · {{ evidenziata.created_at | ora }} ·
+      {{ ZONE[evidenziata.zona_filtro] if evidenziata.zona_filtro else "Tutte le zone" }} ·
+      {{ evidenziata.pool_size }} in gara
+    </p>
+    <p class="kicker hash">SHA-256 lista: {{ evidenziata.pool_hash }}</p>
+    {% for es in evidenziata.estratti %}
+      {% set i = es.iscrizione %}
+      {% if loop.first %}
+      <p class="label">Vincitore</p>
+      <p class="vincitore">{{ es.nominativo }}</p>
+      {% if i %}
+      <p class="dettagli">
+        <a href="tel:{{ i.telefono }}" class="btn btn-primary">Chiama {{ i.telefono }}</a>
+        <span>{{ ZONE[i.zona] }}</span>
+        {% if i.instagram %}<span>@{{ i.instagram }}</span>{% endif %}
+      </p>
+      {% endif %}
+      {% if not loop.last %}<p class="label riserve-titolo">Riserve, in ordine</p><ol class="riserve">{% endif %}
+      {% else %}
+      <li>
+        <strong>{{ es.nominativo }}</strong>
+        {% if i %}<a href="tel:{{ i.telefono }}">{{ i.telefono }}</a> · {{ ZONE[i.zona] }}{% if i.instagram %} · @{{ i.instagram }}{% endif %}{% endif %}
+      </li>
+      {% if loop.last %}</ol>{% endif %}
+      {% endif %}
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  <section class="stats" aria-label="Iscritti">
+    <div class="stat stat-big"><span data-stat="totale">{{ stats.totale }}</span><small>Iscritti</small></div>
+    {% for id, nome in ZONE.items() %}
+    <div class="stat"><span data-stat="zona-{{ id }}">{{ stats.per_zona[id] }}</span><small>{{ nome }}</small></div>
+    {% endfor %}
+    <div class="stat"><span data-stat="marketing">{{ stats.marketing }}</span><small>Ricontattabili</small></div>
+  </section>
+
+  <div class="grid">
+    <section id="estrazione" class="card">
+      <h2>Estrai</h2>
+      <form method="post" action="/admin/estrazioni" class="stack" data-confirm="Confermi l'estrazione?">
+        <label class="label" for="zona">Zona</label>
+        <select id="zona" name="zona">
+          <option value="">Tutte le zone</option>
+          {% for id, nome in ZONE.items() %}<option value="{{ id }}">{{ nome }}</option>{% endfor %}
+        </select>
+        <label class="label" for="riserve">Riserve</label>
+        <input id="riserve" name="riserve" type="number" min="0" max="10" value="2" inputmode="numeric">
+        <button type="submit" class="btn btn-primary btn-xl">Estrai vincitore</button>
+        <p class="nota">Esclude chi è già stato estratto. Generatore casuale crittografico.</p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Iscrizioni</h2>
+      <p class="stato">
+        Stato: <strong data-stat="aperte">{{ "Aperte" if stats.aperte else "Chiuse" }}</strong>
+      </p>
+      <form method="post" action="/admin/iscrizioni/stato"
+            data-confirm="{{ 'Chiudere le iscrizioni? Il form smetterà di accettare invii.' if stats.aperte else 'Riaprire le iscrizioni?' }}">
+        <input type="hidden" name="aperte" value="{{ 'false' if stats.aperte else 'true' }}">
+        <button type="submit" class="btn {{ 'btn-ghost' if stats.aperte else 'btn-primary' }}">
+          {{ "Chiudi iscrizioni" if stats.aperte else "Riapri iscrizioni" }}
+        </button>
+      </form>
+      <h2 class="mt">Export</h2>
+      <p><a class="btn btn-ghost" href="/admin/export/marketing.csv">Contatti ricontattabili (CSV)</a></p>
+      <p class="nota">Solo chi ha dato il consenso facoltativo agli eventi futuri: è la lista per lo chef.</p>
+      <p><a class="btn btn-ghost" href="/admin/export/iscritti.csv">Tutti gli iscritti (CSV)</a></p>
+      <p class="nota">Solo per gestire l'estrazione, non per comunicazioni.</p>
+    </section>
+  </div>
+
+  <section id="storico" class="card">
+    <h2>Storico estrazioni</h2>
+    {% if not estrazioni %}<p class="nota">Nessuna estrazione.</p>{% endif %}
+    <ul class="storico">
+      {% for x in estrazioni %}
+      <li class="{% if x.annullata %}is-annullata{% endif %}">
+        <a href="/admin?e={{ x.id }}#esito">#{{ x.id }} · {{ x.created_at | ora }}</a>
+        <span>{{ ZONE[x.zona_filtro] if x.zona_filtro else "Tutte" }} · {{ x.pool_size }} in gara</span>
+        <span>{{ x.estratti | map(attribute="nominativo") | join(", ") }}</span>
+        {% if x.annullata %}
+        <em>Annullata</em>
+        {% else %}
+        <form method="post" action="/admin/estrazioni/{{ x.id }}/annulla"
+              data-confirm="Annullare l'estrazione #{{ x.id }}? Gli estratti tornano in gara.">
+          <button type="submit" class="btn btn-link">Annulla</button>
+        </form>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section id="iscritti" class="card">
+    <div class="card-head">
+      <h2>Iscritti</h2>
+      <input type="search" placeholder="Cerca nome, telefono, email…" data-filtro="#tabella-iscritti" aria-label="Cerca iscritti">
+    </div>
+    <div class="table-wrap">
+      <table id="tabella-iscritti">
+        <thead>
+          <tr><th>#</th><th>Nome</th><th>Telefono</th><th>Email</th><th>Instagram</th><th>Zona</th><th>Ricont.</th><th>Ora</th><th></th></tr>
+        </thead>
+        <tbody>
+          {% for i in iscritti %}
+          <tr data-cerca="{{ (i.nome ~ ' ' ~ i.cognome ~ ' ' ~ i.telefono ~ ' ' ~ i.email ~ ' ' ~ (i.instagram or '')) | lower }}"
+              class="{% if i.id in estratti_validi %}is-estratto{% endif %}">
+            <td>{{ i.id }}</td>
+            <td>{{ i.nome }} {{ i.cognome }}</td>
+            <td><a href="tel:{{ i.telefono }}">{{ i.telefono }}</a></td>
+            <td>{{ i.email }}</td>
+            <td>{{ "@" ~ i.instagram if i.instagram else "" }}</td>
+            <td>{{ ZONE[i.zona] }}{% if not i.zona_da_qr %} <small title="Scelta a mano nel form">(man.)</small>{% endif %}</td>
+            <td>{{ "Sì" if i.consenso_marketing else "" }}</td>
+            <td>{{ i.created_at | ora("%H:%M") }}</td>
+            <td>
+              <form method="post" action="/admin/iscrizioni/{{ i.id }}/elimina"
+                    data-confirm="Eliminare definitivamente l'iscrizione di {{ i.nome }} {{ i.cognome }}?">
+                <button type="submit" class="btn btn-link">Elimina</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+{% endblock %}
