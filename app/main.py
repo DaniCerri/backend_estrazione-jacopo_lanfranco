@@ -9,13 +9,13 @@ from fastapi.staticfiles import StaticFiles
 from app import admin, api
 from app.config import get_settings
 from app.db import get_engine
-from app.models import Base
+from app.schema import prepara_schema
 from app.schemas import MESSAGGI_ERRORE
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(get_engine())
+    prepara_schema(get_engine())
     yield
 
 
