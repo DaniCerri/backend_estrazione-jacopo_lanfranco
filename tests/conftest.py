@@ -15,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import db as db_module
+from app.db import abilita_fk_sqlite
 from app.main import app
 from app.models import Base
 from app.security import limiter_iscrizioni, limiter_login_globale, limiter_login_ip
@@ -25,6 +26,7 @@ def client():
     engine = create_engine(
         "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
     )
+    abilita_fk_sqlite(engine)
     Base.metadata.create_all(engine)
     Session = sessionmaker(engine, expire_on_commit=False)
 
@@ -53,9 +55,16 @@ def iscrizione(n: int = 1, **kw) -> dict:
         "cognome": f"Rossi{n}",
         "telefono": f"+39 333 {1000000 + n}",
         "email": f"mario{n}@example.com",
+        "accetta_maggiore_eta": True,
         "accetta_regolamento": True,
         "accetta_privacy": True,
         "zona_codice": "qr-n",
     }
     dati.update(kw)
     return dati
+
+
+def sessione():
+    from app.main import app
+
+    return next(app.dependency_overrides[db_module.get_db]())

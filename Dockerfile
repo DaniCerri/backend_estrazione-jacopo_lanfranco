@@ -22,5 +22,5 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 EXPOSE 8000
 
-# "::" ascolta IPv4 e IPv6: serve per la rete privata Railway (*.railway.internal)
-CMD ["sh", "-c", "exec uvicorn app.main:app --host :: --port ${PORT}"]
+# Socket dual-stack IPv4 + IPv6: serve per la rete privata Railway (*.railway.internal)
+CMD ["python", "-m", "app.serve"]

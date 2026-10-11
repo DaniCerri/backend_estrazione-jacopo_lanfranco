@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -23,14 +23,18 @@ class Iscrizione(Base):
     # Sempre minuscola: una sola iscrizione per email
     email: Mapped[str] = mapped_column(String(254), unique=True)
     instagram: Mapped[str | None] = mapped_column(String(30))
+    # Zona di posto: serve solo a trovare il vincitore in sala, non entra nell'estrazione
     zona: Mapped[str] = mapped_column(String(20), index=True)
     # True se la zona arriva dal QR, False se scelta a mano nel form
     zona_da_qr: Mapped[bool] = mapped_column(Boolean)
 
-    # Prova dei consensi: valori, versione dei testi accettati e momento (created_at)
+    # Prova dei consensi: valori, versione dei testi accettati, momento (created_at), IP, UA
+    dichiarazione_maggiore_eta: Mapped[bool] = mapped_column(Boolean)
     consenso_regolamento: Mapped[bool] = mapped_column(Boolean)
-    consenso_privacy: Mapped[bool] = mapped_column(Boolean)
+    presa_visione_privacy: Mapped[bool] = mapped_column(Boolean)
     consenso_marketing: Mapped[bool] = mapped_column(Boolean, index=True)
+    consenso_menzione_instagram: Mapped[bool] = mapped_column(Boolean, default=False)
+    marketing_revocato_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     informativa_versione: Mapped[str] = mapped_column(String(20))
     ip: Mapped[str | None] = mapped_column(String(45))
     user_agent: Mapped[str | None] = mapped_column(String(300))
@@ -43,14 +47,16 @@ class Estrazione(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=adesso)
-    # None = tutte le zone
-    zona_filtro: Mapped[str | None] = mapped_column(String(20))
-    # Partecipanti in gara al momento dell'estrazione
+    # Partecipanti in gara al momento dell'estrazione (sempre tutte le zone)
     pool_size: Mapped[int] = mapped_column(Integer)
     # SHA-256 degli ID in gara ordinati: fotografia verificabile della lista estratta
     pool_hash: Mapped[str] = mapped_column(String(64))
-    # Un'estrazione annullata (es. prova) rimette in gara i suoi estratti
+    # Versione del software e ambiente di esecuzione, per il verbale
+    versione_software: Mapped[str] = mapped_column(String(120))
+    # Il log non si cancella mai: un'estrazione annullata resta visibile con il motivo
     annullata: Mapped[bool] = mapped_column(Boolean, default=False)
+    motivo_annullamento: Mapped[str | None] = mapped_column(String(300))
+    annullata_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     estratti: Mapped[list["Estratto"]] = relationship(
         back_populates="estrazione",
@@ -75,6 +81,18 @@ class Estratto(Base):
 
     estrazione: Mapped[Estrazione] = relationship(back_populates="estratti")
     iscrizione: Mapped[Iscrizione | None] = relationship()
+
+
+class EventoAdmin(Base):
+    """Registro delle azioni fatte dalla dashboard (art. 32 GDPR, trasparenza estrazione)."""
+
+    __tablename__ = "eventi_admin"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=adesso)
+    azione: Mapped[str] = mapped_column(String(40), index=True)
+    dettaglio: Mapped[str | None] = mapped_column(Text)
+    ip: Mapped[str | None] = mapped_column(String(45))
 
 
 class Impostazione(Base):

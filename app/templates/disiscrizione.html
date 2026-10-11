@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Comunicazioni{% endblock %}
+{% block body %}
+<main class="login">
+  <p class="kicker">Chef Battle · Chef Jacopo Lanfranco</p>
+  {% if fatto %}
+  <h1>Fatto.</h1>
+  <p>Non riceverai più inviti e aggiornamenti sui futuri eventi. La revoca non ha effetto sui trattamenti già svolti.</p>
+  {% elif valido %}
+  <h1>Non vuoi più ricevere comunicazioni?</h1>
+  <p>Confermando revochi il consenso a ricevere inviti e aggiornamenti sui futuri eventi dello Chef Jacopo Lanfranco.</p>
+  <form method="post" action="/api/disiscrizione" class="stack">
+    <input type="hidden" name="t" value="{{ token }}">
+    <button type="submit" class="btn btn-primary">Conferma revoca</button>
+  </form>
+  {% else %}
+  <h1>Link non valido</h1>
+  <p>Il link non è valido o è incompleto. Per revocare il consenso rispondi a una delle nostre comunicazioni o scrivi all'indirizzo indicato nell'informativa privacy.</p>
+  {% endif %}
+</main>
+{% endblock %}

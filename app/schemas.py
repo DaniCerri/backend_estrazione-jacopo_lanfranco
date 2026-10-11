@@ -15,7 +15,8 @@ MESSAGGI_ERRORE = {
     "telefono": "Inserisci un numero valido (es. +39 333 1234567).",
     "email": "Formato email non valido.",
     "instagram": "Nickname Instagram non valido.",
-    "accetta_regolamento": "È necessario accettare il Regolamento della serata.",
+    "accetta_maggiore_eta": "La partecipazione è riservata ai maggiorenni.",
+    "accetta_regolamento": "È necessario accettare il Regolamento.",
     "accetta_privacy": "È necessario confermare la presa visione della Privacy Policy.",
     "zona": "Seleziona la tua zona.",
 }
@@ -29,9 +30,13 @@ class IscrizioneIn(BaseModel):
     telefono: str = Field(max_length=30)
     email: EmailStr = Field(max_length=254)
     instagram: str | None = Field(default=None, max_length=40)
+    accetta_maggiore_eta: Literal[True]
     accetta_regolamento: Literal[True]
+    # Presa visione dell'informativa: non è un consenso
     accetta_privacy: Literal[True]
     accetta_marketing: bool = False
+    # Menzione/tag nelle storie Instagram in caso di vincita: vale solo se c'è il nickname
+    consenso_menzione_instagram: bool = False
     # Codice opaco letto dal QR; in alternativa zona scelta a mano
     zona_codice: str | None = Field(default=None, max_length=40)
     zona: str | None = Field(default=None, max_length=20)

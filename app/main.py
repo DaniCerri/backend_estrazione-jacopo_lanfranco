@@ -48,15 +48,17 @@ async def header_sicurezza(request: Request, call_next):
     risposta = await call_next(request)
     risposta.headers.setdefault("X-Content-Type-Options", "nosniff")
     risposta.headers.setdefault("Referrer-Policy", "same-origin")
-    if request.url.path.startswith("/admin"):
+    if get_settings().cookie_secure:
+        risposta.headers["Strict-Transport-Security"] = "max-age=31536000"
+    if request.url.path.startswith(("/admin", "/api/disiscrizione")):
         risposta.headers["X-Frame-Options"] = "DENY"
         risposta.headers["X-Robots-Tag"] = "noindex, nofollow"
         risposta.headers["Content-Security-Policy"] = (
             "default-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"
         )
-        if not request.url.path.startswith("/admin/static"):
-            risposta.headers["Cache-Control"] = "no-store"
-    elif request.url.path.startswith("/api"):
+    if request.url.path.startswith(("/admin", "/api")) and not request.url.path.startswith(
+        "/admin/static"
+    ):
         risposta.headers["Cache-Control"] = "no-store"
     return risposta
 

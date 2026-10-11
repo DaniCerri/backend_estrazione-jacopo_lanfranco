@@ -10,17 +10,20 @@
 
 <main class="wrap">
   {% if msg == "pool_vuoto" %}
-  <p class="avviso" role="alert">Nessun partecipante in gara con questo filtro.</p>
+  <p class="avviso" role="alert">Nessun partecipante in gara.</p>
+  {% elif msg == "lista_cambiata" %}
+  <p class="avviso" role="alert">La lista in gara è cambiata (nuove iscrizioni). Chiudi le iscrizioni, verifica conteggio e impronta, poi estrai.</p>
   {% elif msg == "eliminata" %}
   <p class="avviso" role="status">Iscrizione eliminata.</p>
+  {% elif msg == "revocato" %}
+  <p class="avviso" role="status">Consenso marketing revocato.</p>
   {% endif %}
 
   {% if evidenziata %}
   <section id="esito" class="esito {% if evidenziata.annullata %}is-annullata{% endif %}">
     <p class="kicker">
-      Estrazione #{{ evidenziata.id }} · {{ evidenziata.created_at | ora }} ·
-      {{ ZONE[evidenziata.zona_filtro] if evidenziata.zona_filtro else "Tutte le zone" }} ·
-      {{ evidenziata.pool_size }} in gara
+      Estrazione #{{ evidenziata.id }} · {{ evidenziata.created_at | ora }} · {{ evidenziata.pool_size }} in gara
+      {% if evidenziata.annullata %} · ANNULLATA: {{ evidenziata.motivo_annullamento }}{% endif %}
     </p>
     <p class="kicker hash">SHA-256 lista: {{ evidenziata.pool_hash }}</p>
     {% for es in evidenziata.estratti %}
@@ -31,19 +34,20 @@
       {% if i %}
       <p class="dettagli">
         <a href="tel:{{ i.telefono }}" class="btn btn-primary">Chiama {{ i.telefono }}</a>
-        <span>{{ ZONE[i.zona] }}</span>
-        {% if i.instagram %}<span>@{{ i.instagram }}</span>{% endif %}
+        <span>Zona {{ ZONE[i.zona] }}</span>
+        {% if i.instagram %}<span>@{{ i.instagram }} {{ "· menzione ok" if i.consenso_menzione_instagram else "· NO menzione social" }}</span>{% endif %}
       </p>
       {% endif %}
       {% if not loop.last %}<p class="label riserve-titolo">Riserve, in ordine</p><ol class="riserve">{% endif %}
       {% else %}
       <li>
         <strong>{{ es.nominativo }}</strong>
-        {% if i %}<a href="tel:{{ i.telefono }}">{{ i.telefono }}</a> · {{ ZONE[i.zona] }}{% if i.instagram %} · @{{ i.instagram }}{% endif %}{% endif %}
+        {% if i %}<a href="tel:{{ i.telefono }}">{{ i.telefono }}</a> · {{ ZONE[i.zona] }}{% endif %}
       </li>
       {% if loop.last %}</ol>{% endif %}
       {% endif %}
     {% endfor %}
+    <p class="dettagli mt"><a class="btn btn-ghost-inv" href="/admin/estrazioni/{{ evidenziata.id }}/verbale.csv">Scarica verbale (CSV)</a></p>
   </section>
   {% endif %}
 
@@ -58,16 +62,24 @@
   <div class="grid">
     <section id="estrazione" class="card">
       <h2>Estrai</h2>
-      <form method="post" action="/admin/estrazioni" class="stack" data-confirm="Confermi l'estrazione?">
-        <label class="label" for="zona">Zona</label>
-        <select id="zona" name="zona">
-          <option value="">Tutte le zone</option>
-          {% for id, nome in ZONE.items() %}<option value="{{ id }}">{{ nome }}</option>{% endfor %}
-        </select>
+      <ol class="procedura">
+        <li>Chiudi le iscrizioni.</li>
+        <li>Leggi al notaio conteggio e impronta qui sotto (o consegna la lista CSV).</li>
+        <li>Estrai: vincitore e riserve in un'unica operazione, su tutti gli iscritti.</li>
+      </ol>
+      <dl class="freeze">
+        <dt>In gara</dt><dd data-stat="in_gara">{{ in_gara }}</dd>
+        <dt>SHA-256</dt><dd class="hash-box" data-stat="in_gara_hash">{{ in_gara_hash }}</dd>
+      </dl>
+      <p><a class="btn btn-ghost" href="/admin/export/in-gara.csv">Lista in gara per il notaio (CSV)</a></p>
+      <form method="post" action="/admin/estrazioni" class="stack"
+            data-confirm="Confermi l'estrazione? Resterà registrata nel verbale.">
+        <input type="hidden" name="hash_atteso" value="{{ in_gara_hash }}" data-hash-atteso>
         <label class="label" for="riserve">Riserve</label>
-        <input id="riserve" name="riserve" type="number" min="0" max="10" value="2" inputmode="numeric">
-        <button type="submit" class="btn btn-primary btn-xl">Estrai vincitore</button>
-        <p class="nota">Esclude chi è già stato estratto. Generatore casuale crittografico.</p>
+        <input id="riserve" name="riserve" type="number" min="0" max="10" value="3" inputmode="numeric">
+        <button type="submit" class="btn btn-primary btn-xl" {% if stats.aperte %}data-aperte{% endif %}>Estrai vincitore e riserve</button>
+        {% if stats.aperte %}<p class="nota"><strong>Iscrizioni ancora aperte:</strong> chiudile prima dell'estrazione ufficiale.</p>{% endif %}
+        <p class="nota">Chi è già stato estratto in un'estrazione valida non rientra. Generatore casuale crittografico del sistema operativo.</p>
       </form>
     </section>
 
@@ -85,9 +97,9 @@
       </form>
       <h2 class="mt">Export</h2>
       <p><a class="btn btn-ghost" href="/admin/export/marketing.csv">Contatti ricontattabili (CSV)</a></p>
-      <p class="nota">Solo chi ha dato il consenso facoltativo agli eventi futuri: è la lista per lo chef.</p>
-      <p><a class="btn btn-ghost" href="/admin/export/iscritti.csv">Tutti gli iscritti (CSV)</a></p>
-      <p class="nota">Solo per gestire l'estrazione, non per comunicazioni.</p>
+      <p class="nota">Solo consensi facoltativi attivi, con link di revoca per ogni contatto: è la lista per lo chef. Consegnala cifrata (es. ZIP con password inviata su un altro canale).</p>
+      <p><a class="btn btn-ghost" href="/admin/export/iscritti.csv">Tutti gli iscritti + prova consensi (CSV)</a></p>
+      <p class="nota">Solo per gestire l'estrazione e i controlli, mai per comunicazioni.</p>
     </section>
   </div>
 
@@ -98,13 +110,14 @@
       {% for x in estrazioni %}
       <li class="{% if x.annullata %}is-annullata{% endif %}">
         <a href="/admin?e={{ x.id }}#esito">#{{ x.id }} · {{ x.created_at | ora }}</a>
-        <span>{{ ZONE[x.zona_filtro] if x.zona_filtro else "Tutte" }} · {{ x.pool_size }} in gara</span>
+        <span>{{ x.pool_size }} in gara</span>
         <span>{{ x.estratti | map(attribute="nominativo") | join(", ") }}</span>
         {% if x.annullata %}
-        <em>Annullata</em>
+        <em>Annullata: {{ x.motivo_annullamento }}</em>
         {% else %}
         <form method="post" action="/admin/estrazioni/{{ x.id }}/annulla"
-              data-confirm="Annullare l'estrazione #{{ x.id }}? Gli estratti tornano in gara.">
+              data-prompt="Motivo dell'annullamento dell'estrazione #{{ x.id }} (resta nel verbale). Gli estratti tornano in gara.">
+          <input type="hidden" name="motivo">
           <button type="submit" class="btn btn-link">Annulla</button>
         </form>
         {% endif %}
@@ -125,6 +138,7 @@
         </thead>
         <tbody>
           {% for i in iscritti %}
+          {% set ricont = i.consenso_marketing and not i.marketing_revocato_at %}
           <tr data-cerca="{{ (i.nome ~ ' ' ~ i.cognome ~ ' ' ~ i.telefono ~ ' ' ~ i.email ~ ' ' ~ (i.instagram or '')) | lower }}"
               class="{% if i.id in estratti_validi %}is-estratto{% endif %}">
             <td>{{ i.id }}</td>
@@ -133,15 +147,36 @@
             <td>{{ i.email }}</td>
             <td>{{ "@" ~ i.instagram if i.instagram else "" }}</td>
             <td>{{ ZONE[i.zona] }}{% if not i.zona_da_qr %} <small title="Scelta a mano nel form">(man.)</small>{% endif %}</td>
-            <td>{{ "Sì" if i.consenso_marketing else "" }}</td>
+            <td>{% if ricont %}Sì{% elif i.marketing_revocato_at %}<small>revocato</small>{% endif %}</td>
             <td>{{ i.created_at | ora("%H:%M") }}</td>
-            <td>
+            <td class="azioni">
+              {% if ricont %}
+              <form method="post" action="/admin/iscrizioni/{{ i.id }}/revoca-marketing"
+                    data-confirm="Revocare il consenso marketing di {{ i.nome }} {{ i.cognome }}?">
+                <button type="submit" class="btn btn-link">Revoca mkt</button>
+              </form>
+              {% endif %}
               <form method="post" action="/admin/iscrizioni/{{ i.id }}/elimina"
-                    data-confirm="Eliminare definitivamente l'iscrizione di {{ i.nome }} {{ i.cognome }}?">
+                    data-prompt="Motivo dell'eliminazione di {{ i.nome }} {{ i.cognome }} (es. richiesta dell'interessato, iscrizione falsa):">
+                <input type="hidden" name="motivo">
                 <button type="submit" class="btn btn-link">Elimina</button>
               </form>
             </td>
           </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="registro" class="card">
+    <h2>Registro azioni</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Ora</th><th>Azione</th><th>Dettaglio</th><th>IP</th></tr></thead>
+        <tbody>
+          {% for ev in eventi %}
+          <tr><td>{{ ev.created_at | ora }}</td><td>{{ ev.azione }}</td><td class="wrap-cell">{{ ev.dettaglio or "" }}</td><td>{{ ev.ip or "" }}</td></tr>
           {% endfor %}
         </tbody>
       </table>

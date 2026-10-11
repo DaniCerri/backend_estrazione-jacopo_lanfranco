@@ -137,3 +137,13 @@ td small { color: var(--muted); }
 
 .login { max-width: 360px; margin: 12vh auto 0; padding: 0 16px; }
 .login h1 { margin-bottom: 24px; }
+
+.procedura { margin: 0 0 12px; padding-left: 20px; font-size: 14px; display: grid; gap: 2px; }
+.freeze { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0 0 12px; align-items: baseline; }
+.freeze dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); font-weight: 600; }
+.freeze dd { margin: 0; font: 400 24px/1.2 var(--serif); }
+.freeze .hash-box { font: 12px/1.4 ui-monospace, monospace; overflow-wrap: anywhere; }
+.hash-box.is-cambiato { color: var(--danger); font-weight: 700; }
+.btn-ghost-inv { background: transparent; color: var(--bg); border-color: var(--bg); }
+.azioni { display: flex; gap: 12px; }
+td.wrap-cell { white-space: normal; overflow-wrap: anywhere; min-width: 240px; }

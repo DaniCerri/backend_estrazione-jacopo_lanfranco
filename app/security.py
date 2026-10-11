@@ -59,6 +59,21 @@ def _serializer() -> URLSafeTimedSerializer:
     return URLSafeTimedSerializer(s.secret_key, salt=f"admin:{impronta}")
 
 
+def _serializer_disiscrizione() -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(get_settings().secret_key, salt="disiscrizione")
+
+
+def crea_token_disiscrizione(iscrizione_id: int) -> str:
+    return _serializer_disiscrizione().dumps(iscrizione_id)
+
+
+def leggi_token_disiscrizione(token: str) -> int | None:
+    try:
+        return int(_serializer_disiscrizione().loads(token))
+    except (BadSignature, ValueError, TypeError):
+        return None
+
+
 def crea_token_admin() -> str:
     return _serializer().dumps({"admin": True})
 

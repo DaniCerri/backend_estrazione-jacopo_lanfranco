@@ -10,13 +10,29 @@ def test_iscrizione_da_qr(client):
 def test_salva_prova_tecnica(client, admin):
     client.post("/api/iscrizioni", json=iscrizione(), headers={"user-agent": "UA-test"})
     assert "UA-test" not in admin.get("/admin").text  # non esposto in dashboard
-    from app.db import get_db
-    from app.main import app
     from app.models import Iscrizione
+    from tests.conftest import sessione
 
-    db = next(app.dependency_overrides[get_db]())
-    i = db.get(Iscrizione, 1)
+    i = sessione().get(Iscrizione, 1)
     assert i.user_agent == "UA-test" and i.ip
+    assert i.dichiarazione_maggiore_eta and i.informativa_versione == "1.0"
+    assert i.consenso_menzione_instagram is False
+
+
+def test_menzione_instagram_solo_con_nickname(client):
+    from app.models import Iscrizione
+    from tests.conftest import sessione
+
+    client.post("/api/iscrizioni", json=iscrizione(1, consenso_menzione_instagram=True))
+    client.post("/api/iscrizioni", json=iscrizione(2, instagram="chef.fan", consenso_menzione_instagram=True))
+    db = sessione()
+    assert db.get(Iscrizione, 1).consenso_menzione_instagram is False
+    assert db.get(Iscrizione, 2).consenso_menzione_instagram is True
+
+
+def test_maggiore_eta_obbligatoria(client):
+    r = client.post("/api/iscrizioni", json=iscrizione(accetta_maggiore_eta=False))
+    assert r.status_code == 422 and "accetta_maggiore_eta" in r.json()["campi"]
 
 
 def test_zona_manuale(client):

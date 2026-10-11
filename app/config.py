@@ -20,7 +20,10 @@ class Settings(BaseSettings):
     # Codice opaco contenuto nel QR (?z=<codice>) -> id zona
     zone_codes: dict[str, str] = {}
     cookie_secure: bool = True
-    informativa_versione: str = "2026-10-11"
+    # Versione dei testi legali mostrati dal front-end, salvata con ogni iscrizione
+    informativa_versione: str = "1.0"
+    # URL pubblico del sito: serve per i link di disiscrizione nell'export
+    public_base_url: str = "http://localhost:5173"
     rate_limit_per_minute: int = 120
     debug: bool = False
 

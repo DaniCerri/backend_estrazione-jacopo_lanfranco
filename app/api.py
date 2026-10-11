@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -8,8 +8,9 @@ from app.config import ZONE, get_settings
 from app.db import get_db
 from app.models import Iscrizione
 from app.schemas import MESSAGGI_ERRORE, IscrizioneIn
-from app.security import client_ip, limiter_iscrizioni
-from app.services import iscrizioni_aperte
+from app.security import client_ip, leggi_token_disiscrizione, limiter_iscrizioni
+from app.services import iscrizioni_aperte, revoca_marketing
+from app.templating import templates
 
 router = APIRouter(prefix="/api")
 
@@ -70,9 +71,11 @@ def crea_iscrizione(dati: IscrizioneIn, request: Request, db: Session = Depends(
             instagram=dati.instagram,
             zona=zona,
             zona_da_qr=da_qr,
+            dichiarazione_maggiore_eta=dati.accetta_maggiore_eta,
             consenso_regolamento=dati.accetta_regolamento,
-            consenso_privacy=dati.accetta_privacy,
+            presa_visione_privacy=dati.accetta_privacy,
             consenso_marketing=dati.accetta_marketing,
+            consenso_menzione_instagram=dati.consenso_menzione_instagram and bool(dati.instagram),
             informativa_versione=settings.informativa_versione,
             ip=client_ip(request)[:45],
             user_agent=(request.headers.get("user-agent") or "")[:300] or None,
@@ -86,6 +89,36 @@ def crea_iscrizione(dati: IscrizioneIn, request: Request, db: Session = Depends(
         return _duplicato(db, dati) or _errore(409, "duplicato", "Iscrizione già presente.")
 
     return {"stato": "iscritto"}
+
+
+# --- Revoca consenso marketing (link presente in ogni comunicazione) --------
+# GET mostra solo la conferma: i client email che aprono i link in anteprima
+# non devono revocare nulla. La revoca avviene con il POST del bottone.
+
+
+@router.get("/disiscrizione", response_class=HTMLResponse)
+def pagina_disiscrizione(request: Request, t: str = ""):
+    valido = leggi_token_disiscrizione(t) is not None
+    return templates.TemplateResponse(
+        request, "disiscrizione.html", {"token": t, "valido": valido, "fatto": False},
+        status_code=200 if valido else 400,
+    )
+
+
+@router.post("/disiscrizione", response_class=HTMLResponse)
+def disiscrizione(request: Request, t: str = Form(""), db: Session = Depends(get_db)):
+    iscrizione_id = leggi_token_disiscrizione(t)
+    if iscrizione_id is None:
+        return templates.TemplateResponse(
+            request, "disiscrizione.html", {"token": t, "valido": False, "fatto": False},
+            status_code=400,
+        )
+    if (i := db.get(Iscrizione, iscrizione_id)) is not None:
+        revoca_marketing(db, i, "link", client_ip(request))
+    # Stessa risposta anche se l'iscrizione non esiste più: nessuna informazione trapela
+    return templates.TemplateResponse(
+        request, "disiscrizione.html", {"token": t, "valido": True, "fatto": True}
+    )
 
 
 @router.get("/stato")
