@@ -49,6 +49,10 @@ def crea_iscrizione(dati: IscrizioneIn, request: Request, db: Session = Depends(
     if not iscrizioni_aperte(db):
         return _errore(403, "chiuse", "Le iscrizioni all'estrazione sono chiuse.")
 
+    if not dati.instagram and not dati.senza_instagram:
+        msg = MESSAGGI_ERRORE["instagram_mancante"]
+        return _errore(422, "validazione", msg, campi={"instagram": msg})
+
     settings = get_settings()
     if dati.zona_codice and dati.zona_codice in settings.zone_codes:
         zona, da_qr = settings.zone_codes[dati.zona_codice], True

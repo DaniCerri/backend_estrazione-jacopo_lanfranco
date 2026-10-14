@@ -30,6 +30,15 @@ def test_menzione_instagram_solo_con_nickname(client):
     assert db.get(Iscrizione, 2).consenso_menzione_instagram is True
 
 
+def test_instagram_obbligatorio_salvo_senza_account(client):
+    r = client.post("/api/iscrizioni", json=iscrizione(senza_instagram=False))
+    assert r.status_code == 422 and "instagram" in r.json()["campi"]
+    r = client.post("/api/iscrizioni", json=iscrizione(senza_instagram=False, instagram="@ "))
+    assert r.status_code == 422 and "instagram" in r.json()["campi"]
+    r = client.post("/api/iscrizioni", json=iscrizione(senza_instagram=False, instagram="chef.fan"))
+    assert r.status_code == 201
+
+
 def test_maggiore_eta_obbligatoria(client):
     r = client.post("/api/iscrizioni", json=iscrizione(accetta_maggiore_eta=False))
     assert r.status_code == 422 and "accetta_maggiore_eta" in r.json()["campi"]

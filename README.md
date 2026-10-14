@@ -27,7 +27,7 @@ Senza `DATABASE_URL` usa SQLite locale (`dev.db`). Le tabelle vengono create all
 | GET | `/api/health` | healthcheck Railway |
 | GET | `/admin` | dashboard (login con `ADMIN_PASSWORD`) |
 
-Payload iscrizione: `nome, cognome, telefono, email, instagram?, accetta_maggiore_eta, accetta_regolamento, accetta_privacy, consenso_menzione_instagram, accetta_marketing, zona_codice? | zona?, website` (honeypot, lasciare vuoto).
+Payload iscrizione: `nome, cognome, telefono, email, instagram? | senza_instagram, accetta_maggiore_eta, accetta_regolamento, accetta_privacy, consenso_menzione_instagram, accetta_marketing, zona_codice? | zona?, website` (honeypot, lasciare vuoto).
 
 ## Zone e QR
 

@@ -15,6 +15,7 @@ MESSAGGI_ERRORE = {
     "telefono": "Inserisci un numero valido (es. +39 333 1234567).",
     "email": "Formato email non valido.",
     "instagram": "Nickname Instagram non valido.",
+    "instagram_mancante": "Inserisci il nickname Instagram o indica che non hai un account.",
     "accetta_maggiore_eta": "La partecipazione è riservata ai maggiorenni.",
     "accetta_regolamento": "È necessario accettare il Regolamento.",
     "accetta_privacy": "È necessario confermare la presa visione della Privacy Policy.",
@@ -30,6 +31,8 @@ class IscrizioneIn(BaseModel):
     telefono: str = Field(max_length=30)
     email: EmailStr = Field(max_length=254)
     instagram: str | None = Field(default=None, max_length=40)
+    # Nickname richiesto, ma chi non ha un account partecipa lo stesso (DPR 430: partecipazione aperta a tutti)
+    senza_instagram: bool = False
     accetta_maggiore_eta: Literal[True]
     accetta_regolamento: Literal[True]
     # Presa visione dell'informativa: non è un consenso

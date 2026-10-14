@@ -58,6 +58,7 @@ def iscrizione(n: int = 1, **kw) -> dict:
         "accetta_maggiore_eta": True,
         "accetta_regolamento": True,
         "accetta_privacy": True,
+        "senza_instagram": True,
         "zona_codice": "qr-n",
     }
     dati.update(kw)
